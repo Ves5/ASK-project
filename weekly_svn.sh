@@ -35,7 +35,7 @@ CURR_REV=$(svnlook youngest ${REPO_DIR})
 # save revision number
 echo ${CURR_REV} > ${LATEST}/.info.rev
 # save full path to the repo so it can be restored
-echo ${REPO_DIR} > ${LATEST}/.source.dir
+echo $(dirname ${REPO_DIR}) > ${LATEST}/.source.dir
 
 # enter parent directory of the repo
 cd ${REPO_DIR}/..

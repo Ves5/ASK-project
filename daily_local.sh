@@ -12,5 +12,5 @@ SOURCE=/home/ves/data/
 
 # make incremental backup according to snapshot file
 # snapshot file will be updated to new backup state after creation
-tar --listed-incremental= ${SNAPSHOT_FILE} \
+tar --listed-incremental=${SNAPSHOT_FILE} \
 	-cvzf ${DAILY_FILE} ${SOURCE}

@@ -37,7 +37,7 @@ rm -rf ${LATEST}
 ln -s ${WEEKLY_PATH} ${LATEST}
 
 # save the full path to repo so it can be recreated in proper place
-echo ${REPO_DIR} > ${LATEST}/.source.dir
+echo $(dirname ${REPO_DIR}) > ${LATEST}/.source.dir
 # save metadata which include files' ownerships, permission
 sh /home/ves/backups/git_metadata.sh > ${LATEST}/weekly.metadata
 
