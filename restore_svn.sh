@@ -19,31 +19,33 @@ if [ $# -eq 1 ]; then
     DEST=$(cat .source.dir)
 
     cd $DEST
-
+	# make place for backup
     rm -R $REPO_NAME &> /dev/null
 
     # extract latest weekly (full) backup
     tar --listed-incremental=/dev/null -xvf ${LATEST}/weekly.tar.gz
-
+	
+	# create repo for the backup
     svnadmin create $REPO_NAME
-
+	# load full weekly backup
     svnadmin load $REPO_NAME < weekly.dmp
-
+	# update metadata
     sh weekly.metadata &> /dev/null
-
+	# clean backup files
     rm weekly.dmp weekly.metadata
 
     # extracting each daily incremental backup
     for INC in $(ls ${LATEST}/daily*)
-    do
+    do	
+		# extract files
         tar --listed-incremental=/dev/null -xvf $INC
 
         INC=$(basename $INC | cut -d. -f1)
-
+		# load incremental changes
         svnadmin load $REPO_NAME < "$INC.dmp"
-
+		# update metadata
         sh "$INC.metadata" &> /dev/null
-
+		# clean
         rm "$INC.dmp" "$INC.metadata"
     done
 elif [ $# -eq 2 ]; then
@@ -54,10 +56,9 @@ elif [ $# -eq 2 ]; then
     do
         # find first smaller or equal date than given by user
         if [ $DIR -le $(date -d "$2" +%Y%m%d) ]; then
+			# set source and desination properly for given date, then perform full weekly backup restore just like in previous branch
             cd $DIR
-
             SOURCE=/home/ves/backups/git/${REPO_NAME}/${DIR}
-
             DEST=$(cat .source.dir)
 
             cd $DEST
@@ -75,15 +76,17 @@ elif [ $# -eq 2 ]; then
 
             rm weekly.bundle weekly.metadata
 
+			# count which is the max daily backup to restore
             datediffs $2 $DIR
             COUNT=$(($? + 1))
             
             for DAY in $(ls ${SOURCE}/daily*)
-            do
+            do	
+				# if daily backup shouldn't be restored because it is too close in the past
                 if [ $COUNT -lt $(basename $DAY | head -c 6 | tail -c 1) ]; then
                     break
                 fi
-
+				# else it should be restored in a standard way
                 tar --listed-incremental=/dev/null -xvf $DAY
 
                 DAY=$(basename $DAY | cut -d. -f1)
