@@ -32,6 +32,23 @@ Pełne kopie tworzone są poprzez komendę `svn dump`, która w podstawowej post
 W kopiach przyrostowych tak samo najpierw sprawdzamy czy wystąpiły zmiany w repozytorium poprzez porównanie obecnego numeru wersji z wcześniej zapisaną wersją. Jeśli wystąpiły zmiany to wykonujemy kopię również z wykorzystaniem `svnadmin dump`, jednak tym razem z dodatkową opcją `--incremental`, gdzie wskazujemy zakres wersji, które mają być uwzględnione. Dzięki temu kopia zawiera zmiany tylko od poprzedniej kopii bezpieczeństwa, gdyż podajemy zakres od zapisanego numeru wersji do obecnej wersji. Dalsza część skryptu jest identyczna z tygodniową i zawiera zapis numeru wersji, ścieżki, metadanych oraz kompresję wszystkich plików.
 
 
+#### Odzyskiwanie kopii zapasowych
+Skrypty do odczytywania mają trochę bardziej skomplikowaną strukturę. Mają one dwa tryby. Jeśli użytkownik nie poda dokładnej daty do odzyskiwana jest najbardziej aktualna kopia. Natomiast dodatkowo użytkownik może podać datę jako argument (w formacie zgodnym z zapisem dat w systemie Linux), wtedy skrypt przywraca stan na podany dzień, jeśli takowa kopia zapasowa istnieje.
+
+##### Pliki
+Ponownie zacznę od opisania skryptu dotyczącego plików. Jeśli ma być odzyskana najnowsza kopia, to skrypt wchodzi w folder z najnowszą kopią bezpieczeństwa, następnie rozpakowuje poprzez `tar` pełną kopię "tygodniową". Następnie w taki sam sposób wypakowuje w odpowiedniej kolejności paczki dzienne. Warto wspomnieć, że kopie zawierają pełną ścieżkę do folderów, więc są wypakowywane w folderze`/`.
+
+Chęć odzyskania danych z konkretnego dnia powoduje trochę kompilkacji. Najpierw znajdujemy odpowiedni folder po nazwie, jest to folder z najbliższą wcześniejszą lub taką samą datą co żądana data przez użytkownika. Następnie wypakowywana jest pełna kopia. W związku z tym, że dla każdego dnia jest wykonywana kopia, nawet jeśli nie było zmian, to wypakowujemy tyle pierwszych kopii dziennych z obecnego folderu, ile jest dni między wskazaną przez użytkownika datą (włącznie), a dniem kiedy została stworzona pełna kopia. Do wyliczenia liczby dnii wykorzystujemy stworzoną przez siebie prostą funkcję `datediffs`, która zwraca liczbę dni między dwoma datami i korzysta z narzędzia `date`.
+
+##### Git
+Najpierw działanie przy odzyskiwaniu najbardziej aktualnej kopii bezpieczeństwa. Najpierw odczytujemy, zapisaną wcześniej przy tworzeniu kopii, lokalizację repozytorium na dysku i usuwamy wersję repo, która obecnie znajduje się na dysku w tym samym miejscu. Następnie rozpakowujemy pliki związane z pełną kopią tygodniową i tworzymy repozytorium na podstawie stworzonej wcześniej paczki (bundle) poprzez `git clone`. Dodatkowo wykonujemy jak skrypt polecenia, które przywracają metadane (automatycznie tworzone pliki `*.metadata`) oraz usuwamy lokalnie pliki z zarchiwizowanej kopii, które już nie są potrzebne po odzyskaniu danych. Potem wykonujemy te same działania dla kopii przyrostowych z tą różnicą, że zamiast tworzyć repozytorium, to wczytujemy zmiany do repozytorium z użyciem `git pull`.
+
+Odzyskiwanie stanu z konkretnego dnia wprowadza podobne komplikacje co przy plikach, jednak trzeba pamiętąc, że jeśli nie było zmian w repozytorium, to jego kopia nie została wykonana. Zatem zamiast odzyskiwać N pierwszych kopii przyrostowych jak poprzednio (N - liczba dni między żądaną datą, a datą wykonania pełnej kopii), tym razem obliczmy najpierw N, a potem przywracamy kopie dzienne, których nazwy wskazują, że były stworzone nie później niż wskazana przez użytkownika data (paczki `dailyX`, takie, że $X<N+1$).
+
+
+##### Repozytoria SVN
+Sposób wyboru plików do odzyskania jest zbieżny z tym dla repozytoriów git, zatem pozwolę sobie opisać tylko sekwencję komend potrzebnych do odzyskania repozytorium i już pominę pozostałe aspekty, takie jak odzyskanie metadanych. Dla każdej kopii zapasowej, czy to pełnej czy przyrostowej, zmiany są wczytywane z pliku dump (`*.dmp`) do repo poprzez komendę `svnadmin load`. Dodatkowo przed wczytaniem pełnej kopii ponownie trzeba usunąć obecną wersję repozytorium oraz stworzyć repozytorium na nowo z użyciem `svnadmin create`.
+
 
 
 ### Crontab
